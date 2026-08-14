@@ -3,7 +3,7 @@ const path = require('path');
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
-const SAMPLE_IMAGES = [
+const GUARANTEED_IMAGES = [
   'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=800&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&auto=format&fit=crop',
@@ -49,11 +49,8 @@ async function syncToFirestore(noticias, alertas) {
         .where('enlaceOriginal', '==', item.url)
         .get();
 
-      // Reliable image URL
-      let chosenImage = item.imagenUrl;
-      if (!chosenImage || chosenImage.startsWith('/') || chosenImage.includes('interempresas.net')) {
-        chosenImage = SAMPLE_IMAGES[i % SAMPLE_IMAGES.length];
-      }
+      const chosenImage = GUARANTEED_IMAGES[i % GUARANTEED_IMAGES.length];
+      item.imagenUrl = chosenImage; // Ensure JSON also has valid Unsplash URL
 
       if (snap.empty) {
         await db.collection('posts').add({
@@ -69,32 +66,13 @@ async function syncToFirestore(noticias, alertas) {
         });
         noticiasCount++;
       } else {
-        // Update existing documents to ensure high-quality image URL
         for (const doc of snap.docs) {
-          const currentImg = doc.data().imagenUrl;
-          if (!currentImg || currentImg.startsWith('/') || currentImg.includes('interempresas.net')) {
-            await doc.ref.update({ imagenUrl: chosenImage });
-          }
+          await doc.ref.update({ imagenUrl: chosenImage, activo: true });
         }
       }
     } catch (e) {
       console.error(` Error al guardar noticia "${item.titulo}":`, e.message);
     }
-  }
-
-  // Also update any legacy posts in 'posts' collection that have broken or relative images
-  try {
-    const allPostsSnap = await db.collection('posts').get();
-    let updatedLegacy = 0;
-    allPostsSnap.docs.forEach(async (doc, idx) => {
-      const data = doc.data();
-      if (!data.imagenUrl || data.imagenUrl.startsWith('/') || data.imagenUrl.includes('interempresas.net')) {
-        await doc.ref.update({ imagenUrl: SAMPLE_IMAGES[idx % SAMPLE_IMAGES.length] });
-        updatedLegacy++;
-      }
-    });
-  } catch (e) {
-    // Ignore legacy update error
   }
 
   // 2. Sincronizar Alertas Sanitarias -> Colección 'avisos'
@@ -127,7 +105,7 @@ async function syncToFirestore(noticias, alertas) {
     alertasCount = 1;
   }
 
-  console.log(`[Firestore Sync] Éxito: ${noticiasCount} noticia(s) guardadas y todas las imágenes actualizadas en "posts".`);
+  console.log(`[Firestore Sync] Éxito: ${noticiasCount} noticia(s) sincronizada(s) con imágenes Unsplash en "posts" y ${alertasCount} aviso en "avisos".`);
 }
 
 module.exports = {
