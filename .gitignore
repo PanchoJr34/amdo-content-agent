@@ -1,5 +1,6 @@
 node_modules/
 .env
+service-account.json
 *.log
 scratch/
 test-*.js

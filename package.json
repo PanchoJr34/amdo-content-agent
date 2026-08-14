@@ -6,10 +6,18 @@
   "scripts": {
     "start": "node index.js"
   },
-  "keywords": ["scrapping", "amdo", "cofepris", "envase", "farmaceutico"],
+  "keywords": [
+    "scrapping",
+    "amdo",
+    "cofepris",
+    "envase",
+    "farmaceutico"
+  ],
   "author": "Antigravity AI",
   "license": "ISC",
   "dependencies": {
-    "cheerio": "^1.0.0-rc.12"
+    "cheerio": "^1.0.0-rc.12",
+    "firebase": "^12.17.1",
+    "firebase-admin": "^14.2.0"
   }
 }

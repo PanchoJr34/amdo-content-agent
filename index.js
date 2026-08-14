@@ -6,6 +6,7 @@ const scrapeAmbientePlastico = require('./scrapers/ambiente-plastico');
 const scrapePtMexico = require('./scrapers/pt-mexico');
 const scrapeInterempresasEnvase = require('./scrapers/interempresas-envase');
 const { deduplicateList } = require('./utils/deduplicator');
+const { syncToFirestore } = require('./utils/firestore-sync');
 
 async function runAgent() {
   console.log('====================================================');
@@ -49,7 +50,10 @@ async function runAgent() {
   fs.writeFileSync(noticiasPath, JSON.stringify(sortedNoticias, null, 2), 'utf8');
   fs.writeFileSync(alertasPath, JSON.stringify(sortedAlertas, null, 2), 'utf8');
 
-  // 7. Generar e imprimir resumen en consola
+  // 7. Sincronizar directamente a la base de datos de Firestore
+  await syncToFirestore(sortedNoticias, sortedAlertas);
+
+  // 8. Generar e imprimir resumen en consola
   console.log('\n====================================================');
   console.log('              RESUMEN DE RESULTADOS               ');
   console.log('====================================================');
