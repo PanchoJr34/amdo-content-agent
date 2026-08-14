@@ -2,9 +2,10 @@ const cheerio = require('cheerio');
 const { fetchHtml, verifyUrl } = require('../utils/http-utils');
 const { parseSpanishDate, formatDateISO, isWithinLast30Days } = require('../utils/date-utils');
 const { generateExtracto, generateContenido } = require('../utils/summarizer');
+const { isPharmaPackagingRelevant } = require('../utils/pharma-filter');
 
 async function scrapeInterempresasEnvase(refDate = new Date()) {
-  console.log('[Scraper] Buscando noticias en Interempresas Envase...');
+  console.log('[Scraper] Buscando noticias especializadas en empaque farmacéutico en Interempresas Envase...');
   const mainUrl = 'https://www.interempresas.net/Envase/';
 
   const html = await fetchHtml(mainUrl);
@@ -18,7 +19,7 @@ async function scrapeInterempresasEnvase(refDate = new Date()) {
     const title = $(el).text().trim();
     if (href && href.includes('/Envase/') && href.endsWith('.html') && !href.includes('NewslettersAlertas')) {
       const fullUrl = href.startsWith('http') ? href : `https://www.interempresas.net${href}`;
-      if (title.length > 10) {
+      if (title.length > 10 && isPharmaPackagingRelevant(title)) {
         candidateUrls.set(fullUrl, title);
       }
     }
@@ -38,6 +39,9 @@ async function scrapeInterempresasEnvase(refDate = new Date()) {
     }
     if (!title || title.length < 5) return null;
 
+    const bodyText = $art('.texto, .cuerpo, article').text() || $art('p').text();
+    if (!isPharmaPackagingRelevant(title, bodyText)) return null;
+
     const dateText = articleHtml.match(/(\d{1,2}\/\d{1,2}\/\d{4})/)?.[0] ||
       $art('.fecha').text().trim() ||
       articleHtml.match(/(\d{4}-\d{2}-\d{2})/)?.[0];
@@ -45,7 +49,7 @@ async function scrapeInterempresasEnvase(refDate = new Date()) {
     const parsedDate = parseSpanishDate(dateText);
     if (!parsedDate || !isWithinLast30Days(parsedDate, refDate)) return null;
 
-    // Extract exact original article image from meta og:image or picture tag
+    // Extract exact original article image
     let originalImage = $art('meta[property="og:image"]').attr('content') ||
       $art('meta[name="twitter:image"]').attr('content') ||
       $art('.foto img, picture img').first().attr('src');
@@ -60,7 +64,6 @@ async function scrapeInterempresasEnvase(refDate = new Date()) {
       originalImage = '/assets/blog/Sostenibilidad-en-envases-plasticos.jpg';
     }
 
-    const bodyText = $art('.texto, .cuerpo, article').text() || $art('p').text();
     const extracto = generateExtracto(title, bodyText);
     const contenido = generateContenido(title, bodyText);
 
@@ -78,7 +81,7 @@ async function scrapeInterempresasEnvase(refDate = new Date()) {
   const fetched = await Promise.all(fetchPromises);
   const validResults = fetched.filter(Boolean);
 
-  console.log(`[Scraper] Interempresas Envase noticias encontradas (últimos 30 días): ${validResults.length}`);
+  console.log(`[Scraper] Interempresas Envase noticias farmacéuticas encontradas (últimos 30 días): ${validResults.length}`);
   return validResults;
 }
 

@@ -2,9 +2,10 @@ const cheerio = require('cheerio');
 const { fetchHtml, verifyUrl } = require('../utils/http-utils');
 const { parseSpanishDate, formatDateISO, isWithinLast30Days } = require('../utils/date-utils');
 const { generateExtracto, generateContenido } = require('../utils/summarizer');
+const { isPharmaPackagingRelevant } = require('../utils/pharma-filter');
 
 async function scrapeAmbientePlastico(refDate = new Date()) {
-  console.log('[Scraper] Buscando noticias en Ambiente Plástico...');
+  console.log('[Scraper] Buscando noticias especializadas en plásticos y empaque farmacéutico en Ambiente Plástico...');
   const mainUrl = 'https://ambienteplastico.com/';
 
   const html = await fetchHtml(mainUrl);
@@ -24,7 +25,8 @@ async function scrapeAmbientePlastico(refDate = new Date()) {
       !href.includes('/tag/') &&
       !href.includes('/ebooks/') &&
       !href.includes('/contacto') &&
-      title.length > 15
+      title.length > 15 &&
+      isPharmaPackagingRelevant(title)
     ) {
       candidateUrls.set(href, title);
     }
@@ -38,6 +40,9 @@ async function scrapeAmbientePlastico(refDate = new Date()) {
 
     const $art = cheerio.load(articleHtml);
     const title = $art('h1.entry-title, h1').first().text().trim() || initialTitle;
+    const bodyText = $art('.entry-content, article').text() || $art('p').text();
+
+    if (!isPharmaPackagingRelevant(title, bodyText)) return null;
 
     const dateText = $art('time').attr('datetime') ||
       $art('time').first().text().trim() ||
@@ -48,7 +53,7 @@ async function scrapeAmbientePlastico(refDate = new Date()) {
     const parsedDate = parseSpanishDate(dateText);
     if (!parsedDate || !isWithinLast30Days(parsedDate, refDate)) return null;
 
-    // Extract exact original article image from meta og:image or entry-content img
+    // Extract exact original article image
     let originalImage = $art('meta[property="og:image"]').attr('content') ||
       $art('meta[name="twitter:image"]').attr('content') ||
       $art('.entry-content img, article img').first().attr('src');
@@ -63,7 +68,6 @@ async function scrapeAmbientePlastico(refDate = new Date()) {
       originalImage = '/assets/blog/sostenibilidad_plastico.jpg';
     }
 
-    const bodyText = $art('.entry-content, article').text() || $art('p').text();
     const extracto = generateExtracto(title, bodyText);
     const contenido = generateContenido(title, bodyText);
 
@@ -81,7 +85,7 @@ async function scrapeAmbientePlastico(refDate = new Date()) {
   const fetched = await Promise.all(fetchPromises);
   const validResults = fetched.filter(Boolean);
 
-  console.log(`[Scraper] Ambiente Plástico noticias encontradas (últimos 30 días): ${validResults.length}`);
+  console.log(`[Scraper] Ambiente Plástico noticias farmacéuticas encontradas (últimos 30 días): ${validResults.length}`);
   return validResults;
 }
 
