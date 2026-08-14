@@ -52,6 +52,16 @@ async function scrapeAmbientePlastico(refDate = new Date()) {
     const isValid = await verifyUrl(url);
     if (!isValid) return null;
 
+    // Image extraction
+    let imageUrl = $art('meta[property="og:image"]').attr('content') ||
+      $art('meta[name="twitter:image"]').attr('content') ||
+      $art('.entry-content img, article img').first().attr('src') ||
+      '/assets/blog/sostenibilidad_plastico.jpg';
+
+    if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+      imageUrl = `https://ambienteplastico.com/${imageUrl}`;
+    }
+
     const bodyText = $art('.entry-content, article').text() || $art('p').text();
     const resumen = generateSummary(title, bodyText);
 
@@ -60,6 +70,7 @@ async function scrapeAmbientePlastico(refDate = new Date()) {
       fecha: formatDateISO(parsedDate),
       resumen,
       url,
+      imagenUrl: imageUrl,
       fuente: 'Ambiente Plástico'
     };
   });

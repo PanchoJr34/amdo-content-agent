@@ -49,6 +49,20 @@ async function scrapeInterempresasEnvase(refDate = new Date()) {
     const isValid = await verifyUrl(url);
     if (!isValid) return null;
 
+    // Image extraction
+    let imageUrl = $art('meta[property="og:image"]').attr('content') ||
+      $art('meta[name="twitter:image"]').attr('content') ||
+      $art('picture source, picture img, .foto img').first().attr('srcset') ||
+      $art('picture img, .foto img').first().attr('src') ||
+      '/assets/blog/Sostenibilidad-en-envases-plasticos.jpg';
+
+    if (imageUrl && imageUrl.includes(' ')) {
+      imageUrl = imageUrl.split(' ')[0]; // Extract first URL from srcset
+    }
+    if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+      imageUrl = `https://www.interempresas.net${imageUrl}`;
+    }
+
     const bodyText = $art('.texto, .cuerpo, article').text() || $art('p').text();
     const resumen = generateSummary(title, bodyText);
 
@@ -57,6 +71,7 @@ async function scrapeInterempresasEnvase(refDate = new Date()) {
       fecha: formatDateISO(parsedDate),
       resumen,
       url,
+      imagenUrl: imageUrl,
       fuente: 'Interempresas Envase'
     };
   });

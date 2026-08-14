@@ -41,6 +41,8 @@ async function syncToFirestore(noticias, alertas) {
         .where('enlaceOriginal', '==', item.url)
         .get();
 
+      const itemImageUrl = item.imagenUrl || "/assets/blog/Sostenibilidad-en-envases-plasticos.jpg";
+
       if (snap.empty) {
         await db.collection('posts').add({
           titulo: item.titulo,
@@ -48,12 +50,19 @@ async function syncToFirestore(noticias, alertas) {
           contenido: `${item.resumen}\n\nFuente original: ${item.fuente}`,
           fuente: item.fuente,
           enlaceOriginal: item.url,
-          imagenUrl: "",
+          imagenUrl: itemImageUrl,
           imageContain: false,
           activo: true, // Visible en el blog público
           createdAt: FieldValue.serverTimestamp()
         });
         noticiasCount++;
+      } else {
+        // Update existing document if imagenUrl was empty
+        for (const doc of snap.docs) {
+          if (!doc.data().imagenUrl) {
+            await doc.ref.update({ imagenUrl: itemImageUrl });
+          }
+        }
       }
     } catch (e) {
       console.error(` Error al guardar noticia "${item.titulo}":`, e.message);
@@ -61,11 +70,8 @@ async function syncToFirestore(noticias, alertas) {
   }
 
   // 2. Sincronizar Alertas Sanitarias -> Colección 'avisos'
-  // Para evitar saturar la cabecera con múltiples barras fojas, agrupamos o limpiamos anteriores
   let alertasCount = 0;
-
   if (alertas.length > 0) {
-    // Si tenemos alertas recientes de COFEPRIS, creamos o actualizamos un aviso consolidado
     const titulosAlertas = alertas.map(a => a.titulo.replace(/alerta sanitaria:\s*/gi, '')).join(', ');
     const mensajeConsolidado = `Avisos recientes de COFEPRIS sobre ${titulosAlertas}. Se recomienda verificar lotes.`;
 
@@ -73,21 +79,19 @@ async function syncToFirestore(noticias, alertas) {
       .where('tipo', '==', 'alerta')
       .get();
 
-    // Desactivar avisos antiguos creados previamente por prueba
     for (const doc of snap.docs) {
       if (doc.data().titulo.includes('06082026') || doc.data().titulo.includes('22072026') || doc.data().autoGenerado) {
         await doc.ref.delete();
       }
     }
 
-    // Insertar un único aviso consolidado elegante
     await db.collection('avisos').add({
       activo: true,
       autoGenerado: true,
       createdAt: FieldValue.serverTimestamp(),
       enlace: 'https://www.gob.mx/cofepris/documentos/alertas-sanitarias-de-medicamentos',
       imageContain: true,
-      imagenUrl: "",
+      imagenUrl: "/assets/blog/COFEPRIS_logo.jpg",
       mensaje: mensajeConsolidado,
       tipo: "alerta",
       titulo: "Alertas Sanitarias COFEPRIS"
@@ -95,7 +99,7 @@ async function syncToFirestore(noticias, alertas) {
     alertasCount = 1;
   }
 
-  console.log(`[Firestore Sync] Éxito: ${noticiasCount} nueva(s) noticia(s) en "posts" y ${alertasCount} aviso consolidado en "avisos".`);
+  console.log(`[Firestore Sync] Éxito: ${noticiasCount} noticia(s) sincronizada(s) con imagen en "posts" y ${alertasCount} aviso en "avisos".`);
 }
 
 module.exports = {
