@@ -1,7 +1,7 @@
 /**
- * Intelligent Spanish Summarizer & Rewriter
- * Rewrites article titles & text into an original Spanish summary (max 2 lines)
- * without verbatim copy-pasting to avoid copyright issues.
+ * Professional Industry Content Synthesizer & Summarizer for AMDO
+ * Creates detailed, rich multi-paragraph articles providing thorough context
+ * on packaging, plastic manufacturing, and pharma regulations.
  */
 
 function cleanText(text) {
@@ -14,54 +14,60 @@ function cleanText(text) {
 }
 
 /**
- * Rephrases and synthesizes input text into a concise 1-2 line Spanish summary
+ * Generates an engaging 3-4 line summary for blog card previews.
  */
-function generateSummary(title, content = '') {
+function generateExtracto(title, content = '') {
   const cleanedTitle = cleanText(title);
   const cleanedContent = cleanText(content);
 
-  // If no content, base synthesis on title structure
-  const sourceText = cleanedContent.length > 30 ? cleanedContent : cleanedTitle;
-
-  // Split into sentences
-  const sentences = sourceText
+  const sentences = cleanedContent
     .split(/(?<=[.!?])\s+/)
     .map(s => s.trim())
-    .filter(s => s.length > 15);
+    .filter(s => s.length > 25 && !s.includes('http') && !s.includes('Cookie'));
 
-  let primarySentence = sentences[0] || cleanedTitle;
-  let secondarySentence = sentences[1] || '';
+  const leadSentence = sentences[0] || cleanedTitle;
+  const secondSentence = sentences[1] || '';
+  const thirdSentence = sentences[2] || '';
 
-  // Clean lead-ins or boilerplate phrases
-  primarySentence = primarySentence
-    .replace(/^(por|según|conforme a|en el marco de|este|esta|la empresa|el organismo)\s+/i, '')
-    .replace(/\s*\([^)]*\)/g, ''); // remove parenthetical notes
-
-  // Re-synthesize into professional Spanish active voice
-  let reworded = '';
-
-  if (cleanedTitle.toLowerCase().includes('alerta sanitaria') || cleanedTitle.toLowerCase().includes('cofepris')) {
-    reworded = `Se emite aviso oficial sobre ${cleanedTitle.toLowerCase().replace(/alerta sanitaria|comunicado/gi, '').trim()}. Se recomienda a distribuidores y profesionales de la salud verificar lotes y seguir los protocolos normativos correspondientes.`;
-  } else {
-    // General industry news synthesis
-    const mainIdea = primarySentence.length > 120 ? primarySentence.substring(0, 117) + '...' : primarySentence;
-    if (secondarySentence && secondarySentence.length > 20) {
-      const detail = secondarySentence.length > 90 ? secondarySentence.substring(0, 87) + '...' : secondarySentence;
-      reworded = `El sector destaca el avance en ${cleanedTitle.toLowerCase()}. ${mainIdea} ${detail}`;
-    } else {
-      reworded = `Información clave respecto a ${cleanedTitle.toLowerCase()}. Este desarrollo impulsa la innovación y mejores prácticas de calidad en la industria farmacéutica y de envase.`;
-    }
+  let extract = `${leadSentence} ${secondSentence} ${thirdSentence}`.trim();
+  if (extract.length > 350) {
+    extract = extract.substring(0, 347) + '...';
+  } else if (extract.length < 80) {
+    extract = `${cleanedTitle}. Esta actualización aborda las tendencias en innovación de envases, normativas de calidad y competitividad en la industria farmacéutica y del plástico en México y Latinoamérica.`;
   }
 
-  // Ensure maximum 2 lines format (under 240 chars)
-  const lines = reworded.split('\n');
-  if (reworded.length > 240) {
-    reworded = reworded.substring(0, 237) + '...';
+  return extract;
+}
+
+/**
+ * Generates a full multi-paragraph detailed article content.
+ */
+function generateContenido(title, content = '') {
+  const cleanedTitle = cleanText(title);
+  const cleanedContent = cleanText(content);
+
+  const rawParagraphs = content
+    .split(/\n\s*\n|\r\n\r\n/)
+    .map(cleanText)
+    .filter(p => p.length > 60 && !p.toLowerCase().includes('cookie') && !p.toLowerCase().includes('derechos reservados') && !p.includes('http'));
+
+  if (rawParagraphs.length >= 3) {
+    return rawParagraphs.slice(0, 5).join('\n\n');
   }
 
-  return reworded;
+  // Synthesize a structured, multi-paragraph professional article if raw content is short
+  const paragraph1 = `### Panorama e Innovación\n${cleanedTitle} representa una actualización de relevante interés para el sector de envases plásticos y la industria farmacéutica. ${cleanedContent.substring(0, 400)}`;
+
+  const paragraph2 = `### Impacto Regulatorio y Operativo\nDentro de la cadena de suministro de empaque primario y secundario, el cumplimiento normativo y la optimización de procesos garantizan la hermeticidad, inocuidad y seguridad de los productos medicinales e industriales. Mantener estándares elevados en la selección de resinas y tecnologías de moldeo por soplado e inyección resulta fundamental para responder a las exigencias del mercado actual.`;
+
+  const paragraph3 = `### Perspectivas para el Sector\nLa constante evolución en criterios de sostenibilidad, reciclabilidad y eficiencia energética impulsa a los fabricantes a adoptar mejores prácticas industriales. Esta noticia refuerza la importancia de la mejora continua y el monitoreo de tendencias globales de calidad y empaque.`;
+
+  return `${paragraph1}\n\n${paragraph2}\n\n${paragraph3}`;
 }
 
 module.exports = {
-  generateSummary
+  cleanText,
+  generateExtracto,
+  generateContenido,
+  generateSummary: generateExtracto
 };
