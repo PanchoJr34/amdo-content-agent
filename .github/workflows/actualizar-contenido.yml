@@ -2,8 +2,8 @@ name: Actualizar Contenido Automático
 
 on:
   schedule:
-    # Lunes a las 08:00 hora de México (14:00 UTC en horario de verano / 14:00 CST)
-    - cron: '0 14 * * 1'
+    # Lunes a las 11:00 AM hora de México (17:00 UTC)
+    - cron: '0 17 * * 1'
   workflow_dispatch:
 
 jobs:
@@ -21,6 +21,14 @@ jobs:
 
       - name: Instalar dependencias
         run: npm ci || npm install
+
+      - name: Crear service-account.json si existe el secreto
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "$FIREBASE_SERVICE_ACCOUNT" > service-account.json
+          fi
 
       - name: Ejecutar Agente de Recolección de Contenido
         env:
