@@ -1,15 +1,14 @@
 const cheerio = require('cheerio');
 const { fetchHtml, verifyUrl } = require('../utils/http-utils');
 const { parseSpanishDate, formatDateISO, isWithinLast30Days } = require('../utils/date-utils');
-const { generateSummary } = require('../utils/summarizer');
+const { generateExtracto, generateContenido } = require('../utils/summarizer');
 
 async function scrapeAmbientePlastico(refDate = new Date()) {
   console.log('[Scraper] Buscando noticias en Ambiente Plástico...');
-  const results = [];
   const mainUrl = 'https://ambienteplastico.com/';
 
   const html = await fetchHtml(mainUrl);
-  if (!html) return results;
+  if (!html) return [];
 
   const $ = cheerio.load(html);
   const candidateUrls = new Map();
@@ -49,28 +48,32 @@ async function scrapeAmbientePlastico(refDate = new Date()) {
     const parsedDate = parseSpanishDate(dateText);
     if (!parsedDate || !isWithinLast30Days(parsedDate, refDate)) return null;
 
-    const isValid = await verifyUrl(url);
-    if (!isValid) return null;
-
-    // Image extraction
-    let imageUrl = $art('meta[property="og:image"]').attr('content') ||
+    // Extract exact original article image from meta og:image or entry-content img
+    let originalImage = $art('meta[property="og:image"]').attr('content') ||
       $art('meta[name="twitter:image"]').attr('content') ||
-      $art('.entry-content img, article img').first().attr('src') ||
-      '/assets/blog/sostenibilidad_plastico.jpg';
+      $art('.entry-content img, article img').first().attr('src');
 
-    if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
-      imageUrl = `https://ambienteplastico.com/${imageUrl}`;
+    if (originalImage) {
+      if (originalImage.startsWith('//')) {
+        originalImage = `https:${originalImage}`;
+      } else if (!originalImage.startsWith('http')) {
+        originalImage = `https://ambienteplastico.com${originalImage.startsWith('/') ? '' : '/'}${originalImage}`;
+      }
+    } else {
+      originalImage = '/assets/blog/sostenibilidad_plastico.jpg';
     }
 
     const bodyText = $art('.entry-content, article').text() || $art('p').text();
-    const resumen = generateSummary(title, bodyText);
+    const extracto = generateExtracto(title, bodyText);
+    const contenido = generateContenido(title, bodyText);
 
     return {
       titulo: title,
       fecha: formatDateISO(parsedDate),
-      resumen,
+      resumen: extracto,
+      contenido,
       url,
-      imagenUrl: imageUrl,
+      imagenUrl: originalImage,
       fuente: 'Ambiente Plástico'
     };
   });

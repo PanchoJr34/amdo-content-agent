@@ -1,15 +1,14 @@
 const cheerio = require('cheerio');
 const { fetchHtml, verifyUrl } = require('../utils/http-utils');
 const { parseSpanishDate, formatDateISO, isWithinLast30Days } = require('../utils/date-utils');
-const { generateSummary } = require('../utils/summarizer');
+const { generateExtracto, generateContenido } = require('../utils/summarizer');
 
 async function scrapeInterempresasEnvase(refDate = new Date()) {
   console.log('[Scraper] Buscando noticias en Interempresas Envase...');
-  const results = [];
   const mainUrl = 'https://www.interempresas.net/Envase/';
 
   const html = await fetchHtml(mainUrl);
-  if (!html) return results;
+  if (!html) return [];
 
   const $ = cheerio.load(html);
   const candidateUrls = new Map();
@@ -46,32 +45,32 @@ async function scrapeInterempresasEnvase(refDate = new Date()) {
     const parsedDate = parseSpanishDate(dateText);
     if (!parsedDate || !isWithinLast30Days(parsedDate, refDate)) return null;
 
-    const isValid = await verifyUrl(url);
-    if (!isValid) return null;
-
-    // Image extraction
-    let imageUrl = $art('meta[property="og:image"]').attr('content') ||
+    // Extract exact original article image from meta og:image or picture tag
+    let originalImage = $art('meta[property="og:image"]').attr('content') ||
       $art('meta[name="twitter:image"]').attr('content') ||
-      $art('picture source, picture img, .foto img').first().attr('srcset') ||
-      $art('picture img, .foto img').first().attr('src') ||
-      '/assets/blog/Sostenibilidad-en-envases-plasticos.jpg';
+      $art('.foto img, picture img').first().attr('src');
 
-    if (imageUrl && imageUrl.includes(' ')) {
-      imageUrl = imageUrl.split(' ')[0]; // Extract first URL from srcset
-    }
-    if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
-      imageUrl = `https://www.interempresas.net${imageUrl}`;
+    if (originalImage) {
+      if (originalImage.startsWith('//')) {
+        originalImage = `https:${originalImage}`;
+      } else if (originalImage.startsWith('/')) {
+        originalImage = `https://www.interempresas.net${originalImage}`;
+      }
+    } else {
+      originalImage = '/assets/blog/Sostenibilidad-en-envases-plasticos.jpg';
     }
 
     const bodyText = $art('.texto, .cuerpo, article').text() || $art('p').text();
-    const resumen = generateSummary(title, bodyText);
+    const extracto = generateExtracto(title, bodyText);
+    const contenido = generateContenido(title, bodyText);
 
     return {
       titulo: title,
       fecha: formatDateISO(parsedDate),
-      resumen,
+      resumen: extracto,
+      contenido,
       url,
-      imagenUrl: imageUrl,
+      imagenUrl: originalImage,
       fuente: 'Interempresas Envase'
     };
   });
