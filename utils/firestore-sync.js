@@ -33,7 +33,7 @@ async function syncToFirestore(noticias, alertas) {
   const db = initFirebaseAdmin();
   if (!db) return;
 
-  console.log('\n[Firestore Sync] Sincronizando elementos con imágenes ÚNICAS y notas extendidas a Firestore en vivo...');
+  console.log('\n[Firestore Sync] Sincronizando elementos de Noticias y Alertas Sanitarias a Firestore...');
 
   // 1. Sincronizar Noticias -> Colección 'posts'
   let noticiasCount = 0;
@@ -44,7 +44,6 @@ async function syncToFirestore(noticias, alertas) {
         .where('enlaceOriginal', '==', item.url)
         .get();
 
-      // Assign a unique, high-resolution pharmaceutical image tailored to the topic
       const topicImage = getPharmaImageForArticle(item.titulo, item.contenido, i);
       const extractoExtendido = item.resumen || generateExtracto(item.titulo, '');
       const contenidoDetallado = item.contenido || generateContenido(item.titulo, '');
@@ -58,12 +57,11 @@ async function syncToFirestore(noticias, alertas) {
           enlaceOriginal: item.url,
           imagenUrl: topicImage,
           imageContain: false,
-          activo: true, // Visible en el blog público
+          activo: true,
           createdAt: FieldValue.serverTimestamp()
         });
         noticiasCount++;
       } else {
-        // Update existing document to assign unique high-res topic image & rich text
         const docId = snap.docs[0].id;
         await db.collection('posts').doc(docId).update({
           titulo: item.titulo,
@@ -79,31 +77,48 @@ async function syncToFirestore(noticias, alertas) {
       console.error(`[Firestore Sync Error] Error al guardar noticia "${item.titulo}":`, err.message);
     }
   }
-  console.log(`[Firestore Sync] Éxito: Sincronizados ${noticiasCount} artículos con imágenes ÚNICAS en "posts".`);
+  console.log(`[Firestore Sync] Éxito: Sincronizados ${noticiasCount} artículos en "posts".`);
 
-  // 2. Limpiar duplicados y mantener 1 sola alerta sanitaria consolidada de COFEPRIS
-  try {
-    const snapAvisos = await db.collection('avisos').get();
+  // 2. Sincronizar CADA Alerta Sanitaria COFEPRIS individualmente -> Colección 'avisos'
+  let alertasCount = 0;
+  if (alertas && alertas.length > 0) {
+    for (let i = 0; i < alertas.length; i++) {
+      const alerta = alertas[i];
+      try {
+        const snap = await db.collection('avisos')
+          .where('url', '==', alerta.url)
+          .get();
 
-    // Eliminar alertas viejas o de prueba
-    const deletePromises = snapAvisos.docs.map(doc => doc.ref.delete());
-    await Promise.all(deletePromises);
-
-    // Crear la Alerta Sanitaria Consolidada oficial de COFEPRIS en 1 sola entrada marquee
-    if (alertas && alertas.length > 0) {
-      const titulosAlertas = alertas.slice(0, 5).map(a => `${a.titulo} (COFEPRIS)`).join('  ●  ');
-      await db.collection('avisos').add({
-        titulo: 'Alertas Sanitarias COFEPRIS',
-        mensaje: titulosAlertas,
-        fecha: new Date().toISOString(),
-        activo: true,
-        tipo: 'alerta-sanitaria',
-        createdAt: FieldValue.serverTimestamp()
-      });
-      console.log('[Firestore Sync] Éxito: Creada 1 sola alerta marqueé consolidada en "avisos".');
+        if (snap.empty) {
+          await db.collection('avisos').add({
+            titulo: alerta.titulo,
+            mensaje: alerta.resumen || alerta.titulo,
+            resumen: alerta.resumen || alerta.titulo,
+            fecha: alerta.fecha || new Date().toISOString(),
+            url: alerta.url,
+            fuente: 'COFEPRIS',
+            tipo: 'alerta-sanitaria',
+            activo: true,
+            createdAt: FieldValue.serverTimestamp()
+          });
+          alertasCount++;
+        } else {
+          const docId = snap.docs[0].id;
+          await db.collection('avisos').doc(docId).update({
+            titulo: alerta.titulo,
+            mensaje: alerta.resumen || alerta.titulo,
+            resumen: alerta.resumen || alerta.titulo,
+            fecha: alerta.fecha || new Date().toISOString(),
+            url: alerta.url,
+            activo: true
+          });
+          alertasCount++;
+        }
+      } catch (err) {
+        console.error(`[Firestore Sync Error] Error al guardar alerta "${alerta.titulo}":`, err.message);
+      }
     }
-  } catch (err) {
-    console.error('[Firestore Sync Error] Error al consolidar avisos:', err.message);
+    console.log(`[Firestore Sync] Éxito: Sincronizadas ${alertasCount} Alertas Sanitarias individuales en "avisos".`);
   }
 }
 
