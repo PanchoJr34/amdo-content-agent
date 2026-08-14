@@ -1,0 +1,15 @@
+{
+  "name": "amdo-content-agent",
+  "version": "1.0.0",
+  "description": "Agente automatizado para recolectar y reescribir noticias y alertas sanitarias del sector farmacéutico y plástico para Grupo AMDO",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": ["scrapping", "amdo", "cofepris", "envase", "farmaceutico"],
+  "author": "Antigravity AI",
+  "license": "ISC",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12"
+  }
+}
