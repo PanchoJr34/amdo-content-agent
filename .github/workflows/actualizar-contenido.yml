@@ -2,8 +2,8 @@ name: Actualizar Contenido Automático
 
 on:
   schedule:
-    # Lunes a las 11:00 AM hora de México (17:00 UTC)
-    - cron: '0 17 * * 1'
+    # Todos los días a las 11:00 AM hora de México (17:00 UTC)
+    - cron: '0 17 * * *'
   workflow_dispatch:
 
 jobs:
