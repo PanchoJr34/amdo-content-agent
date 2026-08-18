@@ -34,9 +34,3 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: node index.js
-
-      - name: Hacer Commit y Push de los archivos JSON si hubo cambios
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore: actualización automática de contenido [$(date +'%Y-%m-%d')]"
-          file_pattern: "noticias.json alertas.json"
