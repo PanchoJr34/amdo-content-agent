@@ -65,9 +65,24 @@ function generateContenido(title, content = '') {
   return `${paragraph1}\n\n${paragraph2}\n\n${paragraph3}`;
 }
 
+/**
+ * Generates a short summary for a COFEPRIS health alert. Alerts are scraped
+ * from a listing page (title + date only, no article body), so unlike
+ * generateExtracto there is no real content to summarize and no packaging
+ * boilerplate that would make sense here — it's a recall/counterfeit notice,
+ * not an industry news piece. Keeps it honest and avoids repeating the title
+ * (callers like AvisoBanner render "{titulo}: {mensaje}" together).
+ */
+function generateAlertSummary(title) {
+  const cleanedTitle = cleanText(title);
+  const withoutPrefix = cleanedTitle.replace(/^alerta\s+sanitaria:?\s*/i, '').trim();
+  return `COFEPRIS emitió esta alerta sanitaria sobre ${withoutPrefix || 'el producto señalado'}. Consulta el comunicado oficial para conocer los lotes afectados y las medidas recomendadas.`;
+}
+
 module.exports = {
   cleanText,
   generateExtracto,
   generateContenido,
-  generateSummary: generateExtracto
+  generateSummary: generateExtracto,
+  generateAlertSummary
 };

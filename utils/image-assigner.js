@@ -7,7 +7,7 @@
 const PHARMA_IMAGE_LIBRARY = [
   {
     keywords: ['inteligente', 'automatizad', 'fábrica', 'tecnología', 'robot', 'futuro', '4.0'],
-    url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=1000&auto=format&fit=crop'
+    url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1000&auto=format&fit=crop'
   },
   {
     keywords: ['vidrio', 'reciclaje', 'circular', 'sostenib', 'verde', 'ecológic'],

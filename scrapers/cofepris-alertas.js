@@ -1,7 +1,7 @@
 const cheerio = require('cheerio');
 const { fetchHtml, verifyUrl } = require('../utils/http-utils');
 const { parseSpanishDate, formatDateISO, isWithinLast30Days } = require('../utils/date-utils');
-const { generateSummary } = require('../utils/summarizer');
+const { generateAlertSummary } = require('../utils/summarizer');
 
 function cleanAlertTitle(rawTitle, filename) {
   let title = rawTitle || filename || '';
@@ -53,7 +53,7 @@ async function scrapeCofeprisAlertas(refDate = new Date()) {
     const title = cleanAlertTitle(rawTitle, href.split('/').pop());
     processedUrls.add(fullUrl);
 
-    const resumen = generateSummary(title, text);
+    const resumen = generateAlertSummary(title);
 
     results.push({
       titulo: title,

@@ -44,7 +44,9 @@ async function syncToFirestore(noticias, alertas) {
         .where('enlaceOriginal', '==', item.url)
         .get();
 
-      const topicImage = getPharmaImageForArticle(item.titulo, item.contenido, i);
+      // Prioriza la foto real extraída del artículo (og:image); solo usa la
+      // genérica por palabra clave cuando el scraper no encontró ninguna.
+      const topicImage = item.imagenUrl || getPharmaImageForArticle(item.titulo, item.contenido, i);
       const extractoExtendido = item.resumen || generateExtracto(item.titulo, '');
       const contenidoDetallado = item.contenido || generateContenido(item.titulo, '');
 
