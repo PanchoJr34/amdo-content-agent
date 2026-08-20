@@ -33,13 +33,18 @@ async function scrapePtMexico(refDate = new Date()) {
     const title = $art('h1').first().text().trim() || initialTitle;
     if (!title || title.length < 5) return null;
 
-    const dateText = $art('.date, .post-date, time, .date-published').text().trim() ||
+    // La fecha propia del artículo vive en un <time> único dentro de
+    // .article-details; el resto de <time> de la página son de widgets de
+    // "relacionados"/sidebar y ensucian la extracción si no se acota aquí.
+    const articleTime = $art('.article-details time').first();
+    const dateAttr = articleTime.attr('datetime');
+    const dateText = articleTime.text().trim() ||
       articleHtml.match(/(\d{1,2}\/\d{1,2}\/\d{4})/)?.[0] ||
       articleHtml.match(/(\d{4}-\d{2}-\d{2})/)?.[0] ||
       articleHtml.match(/(\d{1,2}\s+de\s+[a-z]+\s+de\s+\d{4})/i)?.[0];
 
-    const parsedDate = parseSpanishDate(dateText);
-    if (!parsedDate || !isWithinLast30Days(parsedDate, refDate)) return null;
+    const parsedDate = dateAttr ? new Date(dateAttr) : parseSpanishDate(dateText);
+    if (!parsedDate || Number.isNaN(parsedDate.getTime()) || !isWithinLast30Days(parsedDate, refDate)) return null;
 
     const isValid = await verifyUrl(url);
     if (!isValid) return null;
