@@ -1,7 +1,7 @@
 const cheerio = require('cheerio');
 const { fetchHtml, verifyUrl } = require('../utils/http-utils');
 const { parseSpanishDate, formatDateISO, isWithinLast30Days } = require('../utils/date-utils');
-const { generateSummary } = require('../utils/summarizer');
+const { generateSummary, generateContenido } = require('../utils/summarizer');
 
 async function scrapePtMexico(refDate = new Date()) {
   console.log('[Scraper] Buscando noticias en PT México...');
@@ -49,13 +49,20 @@ async function scrapePtMexico(refDate = new Date()) {
     const isValid = await verifyUrl(url);
     if (!isValid) return null;
 
-    const bodyText = $art('article, .content, .post-body').text() || $art('p').text();
+    const bodyText = $art('.article-body').text() || $art('p').text();
     const resumen = generateSummary(title, bodyText);
+    const contenido = generateContenido(title, bodyText);
+
+    let imagenUrl = $art('meta[property="og:image"]').attr('content') ||
+      $art('meta[name="twitter:image"]').attr('content');
+    if (imagenUrl && imagenUrl.startsWith('//')) imagenUrl = `https:${imagenUrl}`;
 
     return {
       titulo: title,
       fecha: formatDateISO(parsedDate),
       resumen,
+      contenido,
+      imagenUrl,
       url,
       fuente: 'PT México'
     };
