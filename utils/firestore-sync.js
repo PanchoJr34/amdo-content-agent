@@ -37,6 +37,7 @@ async function syncToFirestore(noticias, alertas) {
 
   // 1. Sincronizar Noticias -> Colección 'posts'
   let noticiasCount = 0;
+  let noticiasNuevas = 0;
   for (let i = 0; i < noticias.length; i++) {
     const item = noticias[i];
     try {
@@ -63,6 +64,7 @@ async function syncToFirestore(noticias, alertas) {
           createdAt: FieldValue.serverTimestamp()
         });
         noticiasCount++;
+        noticiasNuevas++;
       } else {
         const docId = snap.docs[0].id;
         await db.collection('posts').doc(docId).update({
@@ -79,10 +81,11 @@ async function syncToFirestore(noticias, alertas) {
       console.error(`[Firestore Sync Error] Error al guardar noticia "${item.titulo}":`, err.message);
     }
   }
-  console.log(`[Firestore Sync] Éxito: Sincronizados ${noticiasCount} artículos en "posts".`);
+  console.log(`[Firestore Sync] Éxito: Sincronizados ${noticiasCount} artículos en "posts" (${noticiasNuevas} nuevos, ${noticiasCount - noticiasNuevas} ya existían).`);
 
   // 2. Sincronizar CADA Alerta Sanitaria COFEPRIS individualmente -> Colección 'avisos'
   let alertasCount = 0;
+  let alertasNuevas = 0;
   if (alertas && alertas.length > 0) {
     for (let i = 0; i < alertas.length; i++) {
       const alerta = alertas[i];
@@ -104,6 +107,7 @@ async function syncToFirestore(noticias, alertas) {
             createdAt: FieldValue.serverTimestamp()
           });
           alertasCount++;
+          alertasNuevas++;
         } else {
           const docId = snap.docs[0].id;
           await db.collection('avisos').doc(docId).update({
@@ -120,8 +124,10 @@ async function syncToFirestore(noticias, alertas) {
         console.error(`[Firestore Sync Error] Error al guardar alerta "${alerta.titulo}":`, err.message);
       }
     }
-    console.log(`[Firestore Sync] Éxito: Sincronizadas ${alertasCount} Alertas Sanitarias individuales en "avisos".`);
+    console.log(`[Firestore Sync] Éxito: Sincronizadas ${alertasCount} Alertas Sanitarias individuales en "avisos" (${alertasNuevas} nuevas, ${alertasCount - alertasNuevas} ya existían).`);
   }
+
+  return { noticiasNuevas, alertasNuevas };
 }
 
 module.exports = {

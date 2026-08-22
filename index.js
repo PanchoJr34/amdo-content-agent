@@ -51,7 +51,7 @@ async function runAgent() {
   fs.writeFileSync(alertasPath, JSON.stringify(sortedAlertas, null, 2), 'utf8');
 
   // 7. Sincronizar directamente a la base de datos de Firestore
-  await syncToFirestore(sortedNoticias, sortedAlertas);
+  const { noticiasNuevas = 0, alertasNuevas = 0 } = (await syncToFirestore(sortedNoticias, sortedAlertas)) || {};
 
   // 8. Generar e imprimir resumen en consola
   console.log('\n====================================================');
@@ -72,6 +72,41 @@ async function runAgent() {
   console.log('\n[ Resumen por Categoría y Salida ]');
   console.log(`- Categoría "noticia": ${sortedNoticias.length} elemento(s) -> guardado en ${noticiasPath}`);
   console.log(`- Categoría "alerta-sanitaria": ${sortedAlertas.length} elemento(s) -> guardado en ${alertasPath}`);
+  console.log(`- Nuevos de verdad hoy: ${noticiasNuevas} noticia(s), ${alertasNuevas} alerta(s) (el resto ya existían en Firestore y solo se actualizaron).`);
+
+  // 9. Avisar de forma bien visible si no hubo NADA nuevo hoy, para no tener
+  // que adivinar leyendo el log completo (el run sigue en verde: no es un
+  // error, es información sobre qué tan al día está el contenido).
+  const huboAlgoNuevo = noticiasNuevas > 0 || alertasNuevas > 0;
+  const resumenDia = huboAlgoNuevo
+    ? `Hoy sí se agregó contenido nuevo: ${noticiasNuevas} noticia(s), ${alertasNuevas} alerta(s).`
+    : 'Hoy NO se encontró NINGUNA noticia ni alerta nueva. Todo lo sincronizado ya existía en Firestore de antes.';
+
+  if (huboAlgoNuevo) {
+    console.log(`\n✅ ${resumenDia}`);
+  } else {
+    console.log(`\n⚠️  ${resumenDia}`);
+    if (process.env.GITHUB_ACTIONS) {
+      console.log(`::warning::${resumenDia}`);
+    }
+  }
+
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    const emoji = huboAlgoNuevo ? '✅' : '⚠️';
+    const summary = [
+      `## ${emoji} Resumen del agente de contenido — ${new Date().toISOString().split('T')[0]}`,
+      '',
+      `${resumenDia}`,
+      '',
+      '| Fuente | Encontrados (últimos 30 días) |',
+      '|---|---|',
+      ...Object.entries(countsBySource).map(([fuente, n]) => `| ${fuente} | ${n} |`),
+      '',
+      `**Nuevos en Firestore hoy:** ${noticiasNuevas} noticia(s), ${alertasNuevas} alerta(s).`
+    ].join('\n');
+    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary + '\n');
+  }
+
   console.log('\n¡Proceso completado exitosamente con éxito!');
 }
 
