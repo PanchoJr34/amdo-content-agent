@@ -23,7 +23,7 @@ async function scrapeCofeprisNoticias(refDate = new Date()) {
     const articleLinks = [];
     $('a').each((_, el) => {
       const href = $(el).attr('href');
-      if (href && (href.includes('/cofepris/prensa/') || href.includes('/cofepris/es/articulos/'))) {
+      if (href && (href.includes('/cofepris/prensa/') || href.includes('/cofepris/articulos/'))) {
         const fullUrl = href.startsWith('http') ? href : `https://www.gob.mx${href}`;
         if (!processedUrls.has(fullUrl)) {
           processedUrls.add(fullUrl);

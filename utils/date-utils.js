@@ -37,7 +37,19 @@ function parseSpanishDate(rawDate) {
     }
   }
 
-  // 4. Format: DDMMYYYY (e.g. 06082026 in COFEPRIS attachment URLs)
+  // 4. Format: "agosto 19, 2026" (WordPress-style, used by Ambiente Plástico)
+  const monthFirstMatch = cleaned.match(/([a-z]+)\s+(\d{1,2}),?\s+(\d{4})/);
+  if (monthFirstMatch) {
+    const month = MONTHS_ES[monthFirstMatch[1]];
+    const day = parseInt(monthFirstMatch[2]);
+    const year = parseInt(monthFirstMatch[3]);
+    if (month !== undefined) {
+      const d = new Date(year, month, day);
+      return isNaN(d.getTime()) ? null : d;
+    }
+  }
+
+  // 5. Format: DDMMYYYY (e.g. 06082026 in COFEPRIS attachment URLs)
   const compactMatch = cleaned.match(/(\d{2})(\d{2})(\d{4})/);
   if (compactMatch && compactMatch[0].length === 8) {
     const day = parseInt(compactMatch[1]);
@@ -49,7 +61,7 @@ function parseSpanishDate(rawDate) {
     }
   }
 
-  // 5. Fallback Date constructor
+  // 6. Fallback Date constructor
   const parsed = new Date(cleaned);
   return isNaN(parsed.getTime()) ? null : parsed;
 }

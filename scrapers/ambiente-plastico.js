@@ -44,10 +44,14 @@ async function scrapeAmbientePlastico(refDate = new Date()) {
 
     if (!isPharmaPackagingRelevant(title, bodyText)) return null;
 
+    // Prefer machine-readable dates: the visible <time> text on this site
+    // reads "agosto 19, 2026", a format parseSpanishDate doesn't recognize,
+    // which silently dropped every article here. The datetime attribute /
+    // embedded ISO date are reliable, so try those first.
     const dateText = $art('time').attr('datetime') ||
-      $art('time').first().text().trim() ||
       articleHtml.match(/datetime="([^"]+)"/)?.[1] ||
       articleHtml.match(/(\d{4}-\d{2}-\d{2})/)?.[0] ||
+      $art('time').first().text().trim() ||
       articleHtml.match(/(\d{1,2}\s+de\s+[a-z]+\s+de\s+\d{4})/i)?.[0];
 
     const parsedDate = parseSpanishDate(dateText);
