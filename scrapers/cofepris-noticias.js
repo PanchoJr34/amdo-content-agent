@@ -1,5 +1,5 @@
 const cheerio = require('cheerio');
-const { fetchHtml, verifyUrl } = require('../utils/http-utils');
+const { fetchHtml, verifyUrl, normalizeGobMxUrl } = require('../utils/http-utils');
 const { parseSpanishDate, formatDateISO, isWithinLast30Days } = require('../utils/date-utils');
 const { generateSummary } = require('../utils/summarizer');
 
@@ -24,7 +24,7 @@ async function scrapeCofeprisNoticias(refDate = new Date()) {
     $('a').each((_, el) => {
       const href = $(el).attr('href');
       if (href && (href.includes('/cofepris/prensa/') || href.includes('/cofepris/articulos/'))) {
-        const fullUrl = href.startsWith('http') ? href : `https://www.gob.mx${href}`;
+        const fullUrl = normalizeGobMxUrl(href.startsWith('http') ? href : `https://www.gob.mx${href}`);
         if (!processedUrls.has(fullUrl)) {
           processedUrls.add(fullUrl);
           articleLinks.push(fullUrl);

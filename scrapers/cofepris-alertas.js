@@ -1,5 +1,5 @@
 const cheerio = require('cheerio');
-const { fetchHtml, verifyUrl } = require('../utils/http-utils');
+const { fetchHtml, verifyUrl, normalizeGobMxUrl } = require('../utils/http-utils');
 const { parseSpanishDate, formatDateISO, isWithinLast30Days } = require('../utils/date-utils');
 const { generateAlertSummary } = require('../utils/summarizer');
 
@@ -34,7 +34,7 @@ async function scrapeCofeprisAlertas(refDate = new Date()) {
     const href = linkEl.attr('href');
 
     if (!href) return;
-    const fullUrl = href.startsWith('http') ? href : `https://www.gob.mx${href}`;
+    const fullUrl = normalizeGobMxUrl(href.startsWith('http') ? href : `https://www.gob.mx${href}`);
     if (processedUrls.has(fullUrl)) return;
 
     let rawDateStr = text.match(/(\d{1,2}\s+de\s+[a-z]+\s+de\s+\d{4})/i)?.[0] ||
